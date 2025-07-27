@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'fabric-loom' version '1.11-SNAPSHOT'
     id 'maven-publish'
     id 'me.modmuss50.mod-publish-plugin' version '0.7.0'
 }
@@ -27,6 +27,15 @@ repositories {
         url = uri("https://maven.terraformersmc.com/releases/")
         content {
             includeGroup("com.terraformersmc")
+        }
+    }
+
+    // Architectury
+    maven {
+        name = "Architectury"
+        url = uri("https://maven.architectury.dev")
+        content {
+            includeGroup("dev.architectury")
         }
     }
 
@@ -127,8 +136,13 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    modImplementation "red.jackf:whereisit:${project.where_is_it_version}"
-    modImplementation "red.jackf:chesttracker:${project.chest_tracker_version}"
+//    modImplementation "red.jackf:whereisit:${project.where_is_it_version}"
+//    modImplementation "red.jackf:chesttracker:${project.chest_tracker_version}"
+
+    modImplementation "com.github.AlwaysHAK:ChestTracker:639902824e8b6979d584be41f34cc031f89b3f44"
+    modImplementation "com.github.AlwaysHAK:WhereIsIt:697db274295ef045c9ac8404185448d2cdce7722"
+
+    modImplementation "dev.architectury:architectury-fabric:${project.architectury_version}"
 
     modImplementation "dev.isxander:yet-another-config-lib:${project.yet_another_config_lib_version}"
     modCompileOnly "com.blamejared.searchables:Searchables-fabric-${project.searchables_version}"

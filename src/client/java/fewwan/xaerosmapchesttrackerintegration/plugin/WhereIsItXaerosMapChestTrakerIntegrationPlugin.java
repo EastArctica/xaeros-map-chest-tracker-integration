@@ -19,15 +19,18 @@ import red.jackf.whereisit.client.api.WhereIsItClientPlugin;
 import red.jackf.whereisit.client.api.events.OnResult;
 import red.jackf.whereisit.client.api.events.OnResultsCleared;
 import red.jackf.whereisit.client.api.events.SearchInvoker;
-import xaero.common.XaeroMinimapSession;
+import xaero.hud.minimap.BuiltInHudModules;
+import xaero.hud.minimap.module.MinimapSession;
 import xaero.common.minimap.waypoints.Waypoint;
-import xaero.common.minimap.waypoints.WaypointSet;
-import xaero.common.minimap.waypoints.WaypointsManager;
+import xaero.hud.minimap.waypoint.set.WaypointSet;
+import xaero.hud.minimap.world.MinimapWorld;
+import xaero.hud.minimap.world.MinimapWorldManager;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WhereIsItXaerosMapChestTrakerIntegrationPlugin implements WhereIsItClientPlugin {
     private static final String SUFFIX = " [CT]";
@@ -40,10 +43,9 @@ public class WhereIsItXaerosMapChestTrakerIntegrationPlugin implements WhereIsIt
 
         for (NbtElement element : criterionList) {
             if (element instanceof NbtCompound compound) {
-                if (compound.contains("type", NbtElement.STRING_TYPE) &&
-                        "whereisit:item".equals(compound.getString("type"))) {
-                    if (compound.contains("item", NbtElement.STRING_TYPE)) {
-                        String itemId = compound.getString("item");
+                if (compound.getString("type", "").equals("whereisit:item")) {
+                    if (compound.contains("item")) {
+                        String itemId = compound.getString("item", "minecraft:missing-item-id");
                         Identifier itemIdentifier = Identifier.tryParse(itemId);
                         if (itemIdentifier != null) {
                             return Registries.ITEM.get(itemIdentifier);
@@ -65,14 +67,17 @@ public class WhereIsItXaerosMapChestTrakerIntegrationPlugin implements WhereIsIt
         if (searchItem == null) return;
         running = true;
 
-        XaeroMinimapSession minimapSession = XaeroMinimapSession.getCurrentSession();
+        MinimapSession minimapSession = BuiltInHudModules.MINIMAP.getCurrentSession();
         if (minimapSession == null) return;
 
-        WaypointsManager waypointsManager = minimapSession.getWaypointsManager();
-        WaypointSet waypointSet = waypointsManager.getWaypoints();
-        if (waypointSet == null) return;
+        MinimapWorldManager worldManager = minimapSession.getWorldManager();
+        if (worldManager == null) return;
 
-        List<Waypoint> waypoints = waypointSet.getList();
+        MinimapWorld minimapWorld = worldManager.getCurrentWorld();
+        if (minimapWorld == null) return;
+
+        WaypointSet waypointSet = minimapWorld.getCurrentWaypointSet();
+        if (waypointSet == null) return;
 
         Optional<Identifier> key = ProviderUtils.getPlayersCurrentKey();
         Optional<MemoryBank> optionalMemoryBank = MemoryBankAccessImpl.INSTANCE.getLoaded();
@@ -92,7 +97,8 @@ public class WhereIsItXaerosMapChestTrakerIntegrationPlugin implements WhereIsIt
             String waypointName = totalItemCount + " " + itemName + SUFFIX;
             String waypointLabel = totalItemCount <= 99 ? String.valueOf(totalItemCount) : "99";
 
-            waypoints.add(new Waypoint(pos.getX(), pos.getY(), pos.getZ(),
+            // TODO: waypoint is deprecated i guess
+            waypointSet.add(new Waypoint(pos.getX(), pos.getY(), pos.getZ(),
                     waypointName, waypointLabel, COLOR_ID, 0, true));
         }
     }
@@ -102,15 +108,25 @@ public class WhereIsItXaerosMapChestTrakerIntegrationPlugin implements WhereIsIt
         running = false;
         searchItem = null;
 
-        XaeroMinimapSession minimapSession = XaeroMinimapSession.getCurrentSession();
+        MinimapSession minimapSession = BuiltInHudModules.MINIMAP.getCurrentSession();
         if (minimapSession == null) return;
 
-        WaypointsManager waypointsManager = minimapSession.getWaypointsManager();
-        WaypointSet waypointSet = waypointsManager.getWaypoints();
+        MinimapWorldManager worldManager = minimapSession.getWorldManager();
+        if (worldManager == null) return;
+
+        MinimapWorld minimapWorld = worldManager.getCurrentWorld();
+        if (minimapWorld == null) return;
+
+        WaypointSet waypointSet = minimapWorld.getCurrentWaypointSet();
         if (waypointSet == null) return;
 
-        List<Waypoint> waypoints = waypointSet.getList();
-        waypoints.removeIf(waypoint -> waypoint.isTemporary() && waypoint.getName().endsWith(SUFFIX));
+        List<Waypoint> waypointsToRemove = new ArrayList<>();
+        for (Waypoint waypoint : waypointSet.getWaypoints()) {
+            if (waypoint != null && waypoint.isTemporary()) {
+                waypointsToRemove.add(waypoint);
+            }
+        }
+        waypointSet.removeAll(waypointsToRemove);
     }
 
     @Override
